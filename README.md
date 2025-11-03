@@ -1,6 +1,6 @@
 # The Best Sort
 
-A comprehensive TypeScript library for array visualization and asynchronous processing using powerful strategy  with advanced object-oriented programming patterns and design principles.
+A comprehensive AI-friendly TypeScript library for array visualization and asynchronous processing using powerful strategy  with advanced object-oriented programming patterns and design principles.
 
 ## Overview
 
