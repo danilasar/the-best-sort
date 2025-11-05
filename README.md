@@ -4,7 +4,9 @@ A comprehensive AI-friendly TypeScript library for array sorting and asynchronou
 
 ## Overview
 
-The Best Sort is a production ready framework that demonstrates the application of multiple OOP design patterns, architectural principles, and advanced TypeScript features to visualize array element processing. The library implements a most powerful sort strategy.
+The Best Sort is a production-ready TypeScript framework designed to handle efficient sorting operations at scale. At its core, it implements a powerful asynchronous sleep sort strategy, enabling you to sort large datasets with concurrent processing capabilities. The framework leverages event-driven architecture to provide real-time observability into sorting progress, making it practical for production environments where monitoring and performance insights matter.
+
+Whether you're sorting massive collections, processing data streams, or integrating sorting into AI agent workflows, The Best Sort delivers type-safe, extensible sorting solutions. Built with modern software engineering practices, it provides both a reliable tool for practical sorting tasks and a learning resource for developers seeking to understand how sophisticated sorting systems are implemented in contemporary applications.
 
 ## Installation
 
@@ -35,9 +37,9 @@ npx tsc src/index.ts --experimentalDecorators --emitDecoratorMetadata
 node the-best-sort.js
 ```
 
-## Design Patterns
+## Advanced Sorting Strategies
 
-The Best Sort implements multiple design patterns to create a robust and extensible framework, including singleton, factory, builder, facade, decorators, strategy, observer, command invoker and runner.
+The Best Sort implements multiple design patterns to create a robust and extensible framework, including singleton, factory, builder, facade, decorators, strategy, observer, command invoker and runner so you can implement flexible, adaptive sorting solutions for any dataset.
 
 
 ## Core Components
