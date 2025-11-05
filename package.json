@@ -39,7 +39,7 @@
   "bugs": {
     "url": "https://github.com/danilasar/the-best-sort/issues"
   },
-  "homepage": "https://github.com/danilasar/the-best-sort#readme",
+  "homepage": "https://sort.danilasar.ru",
   "engines": {
     "node": ">=18.0.0"
   },
