@@ -1,7 +1,7 @@
 /*
- * Интерфейс для элемента, который можно визуализировать
+ * Интерфейс для элемента, который можно сортировать
  */
-interface IVisualizable {
+interface ISortable {
   getValue(): number;
   toString(): string;
 }
@@ -10,7 +10,7 @@ interface IVisualizable {
  * Интерфейс наблюдателя для паттерна Observer
  */
 interface IObserver<T> {
-  update(event: VisualizationEvent<T>): void;
+  update(event: SortingEvent<T>): void;
 }
 
 /*
@@ -19,23 +19,23 @@ interface IObserver<T> {
 interface ISubject<T> {
   attach(observer: IObserver<T>): void;
   detach(observer: IObserver<T>): void;
-  notify(event: VisualizationEvent<T>): void;
+  notify(event: SortingEvent<T>): void;
 }
 
 /*
- * Типы событий визуализации
+ * Типы событий сортировки
  */
 enum EventType {
   STARTED = 'STARTED',
-  ELEMENT_DISPLAYED = 'ELEMENT_DISPLAYED',
+  ELEMENT_SORTED = 'ELEMENT_SORTED',
   COMPLETED = 'COMPLETED',
   ERROR = 'ERROR'
 }
 
 /*
- * Интерфейс события визуализации
+ * Интерфейс события сортировки
  */
-interface VisualizationEvent<T> {
+interface SortingEvent<T> {
   type: EventType;
   element?: T;
   index?: number;
@@ -45,10 +45,10 @@ interface VisualizationEvent<T> {
 }
 
 /*
- * Интерфейс стратегии визуализации
+ * Интерфейс стратегии сортировки
  */
-interface IVisualizationStrategy<T extends IVisualizable> {
-  visualize(array: T[], context: VisualizationContext<T>): void;
+interface ISortingStrategy<T extends ISortable> {
+  sort(array: T[], context: SortingContext<T>): Promise<T[]>;
   getName(): string;
   getDescription(): string;
 }
@@ -56,23 +56,23 @@ interface IVisualizationStrategy<T extends IVisualizable> {
 /*
  * Интерфейс для фабрики стратегий
  */
-interface IVisualizationStrategyFactory<T extends IVisualizable> {
-  createStrategy(type: StrategyType): IVisualizationStrategy<T>;
-  registerStrategy(type: StrategyType, strategy: IVisualizationStrategy<T>): void;
+interface ISortingStrategyFactory<T extends ISortable> {
+  createStrategy(type: StrategyType): ISortingStrategy<T>;
+  registerStrategy(type: StrategyType, strategy: ISortingStrategy<T>): void;
   listAvailableStrategies(): string[];
 }
 
 /*
- * Типы стратегий визуализации
+ * Типы стратегий сортировки
  */
 enum StrategyType {
-  TIMEOUT_FOREACH = 'TIMEOUT_FOREACH'
+  DEFAULT = 'DEFAULT'
 }
 
 /*
- * Конфигурация визуализации
+ * Конфигурация сортировки
  */
-interface VisualizationConfig {
+interface SortingConfig {
   baseDelayMs: number;
   enableLogging: boolean;
   logPrefix: string;
@@ -81,9 +81,9 @@ interface VisualizationConfig {
 }
 
 /*
- * Обёртка для числового значения с поддержкой визуализации
+ * Обёртка для числового значения с поддержкой сортировки
  */
-class VisualizableNumber implements IVisualizable {
+class SortableNumber implements ISortable {
   constructor(private readonly value: number) {}
 
   getValue(): number {
@@ -95,7 +95,7 @@ class VisualizableNumber implements IVisualizable {
   }
 
   toDetailedString(): string {
-    return `VisualizableNumber(${this.value})`;
+    return `SortableNumber(${this.value})`;
   }
 }
 
@@ -104,13 +104,13 @@ class VisualizableNumber implements IVisualizable {
  */
 class ConfigurationManager {
   private static instance: ConfigurationManager;
-  private config: VisualizationConfig;
+  private config: SortingConfig;
 
   private constructor() {
     this.config = {
       baseDelayMs: 1000,
       enableLogging: true,
-      logPrefix: '',
+      logPrefix: '🎯',
       showTimestamps: false,
       colorize: true
     };
@@ -123,11 +123,11 @@ class ConfigurationManager {
     return ConfigurationManager.instance;
   }
 
-  getConfig(): Readonly<VisualizationConfig> {
+  getConfig(): Readonly<SortingConfig> {
     return Object.freeze({ ...this.config });
   }
 
-  updateConfig(partial: Partial<VisualizationConfig>): void {
+  updateConfig(partial: Partial<SortingConfig>): void {
     this.config = { ...this.config, ...partial };
   }
 
@@ -152,7 +152,6 @@ function Measure(target: any, propertyKey: string, descriptor: PropertyDescripto
     const start = performance.now();
     const result = originalMethod.apply(this, args);
     
-    // Для асинхронных операций добавляем callback
     if (result && typeof result.then === 'function') {
       return result.then((res: any) => {
         const end = performance.now();
@@ -207,11 +206,11 @@ function ValidateArray(target: any, propertyKey: string, descriptor: PropertyDes
 }
 
 /*
- * Контекст визуализации, реализующий паттерн Subject
+ * Контекст сортировки, реализующий паттерн Subject
  */
-class VisualizationContext<T extends IVisualizable> implements ISubject<T> {
+class SortingContext<T extends ISortable> implements ISubject<T> {
   private observers: Set<IObserver<T>> = new Set();
-  private eventHistory: VisualizationEvent<T>[] = [];
+  private eventHistory: SortingEvent<T>[] = [];
   private elementCount: number = 0;
 
   constructor(private strategyName: string) {}
@@ -224,13 +223,13 @@ class VisualizationContext<T extends IVisualizable> implements ISubject<T> {
     this.observers.delete(observer);
   }
 
-  notify(event: VisualizationEvent<T>): void {
+  notify(event: SortingEvent<T>): void {
     this.eventHistory.push(event);
     this.observers.forEach(observer => observer.update(event));
   }
 
   emitStarted(): void {
-    const event: VisualizationEvent<T> = {
+    const event: SortingEvent<T> = {
       type: EventType.STARTED,
       timestamp: Date.now(),
       metadata: { strategy: this.strategyName }
@@ -238,21 +237,21 @@ class VisualizationContext<T extends IVisualizable> implements ISubject<T> {
     this.notify(event);
   }
 
-  emitElementDisplayed(element: T, index: number, delay: number): void {
+  emitElementSorted(element: T, index: number, delay: number): void {
     this.elementCount++;
-    const event: VisualizationEvent<T> = {
-      type: EventType.ELEMENT_DISPLAYED,
+    const event: SortingEvent<T> = {
+      type: EventType.ELEMENT_SORTED,
       element,
       index,
       timestamp: Date.now(),
       delay,
-      metadata: { totalDisplayed: this.elementCount }
+      metadata: { totalSorted: this.elementCount }
     };
     this.notify(event);
   }
 
   emitCompleted(): void {
-    const event: VisualizationEvent<T> = {
+    const event: SortingEvent<T> = {
       type: EventType.COMPLETED,
       timestamp: Date.now(),
       metadata: { 
@@ -264,7 +263,7 @@ class VisualizationContext<T extends IVisualizable> implements ISubject<T> {
   }
 
   emitError(error: Error): void {
-    const event: VisualizationEvent<T> = {
+    const event: SortingEvent<T> = {
       type: EventType.ERROR,
       timestamp: Date.now(),
       metadata: { error: error.message }
@@ -272,7 +271,7 @@ class VisualizationContext<T extends IVisualizable> implements ISubject<T> {
     this.notify(event);
   }
 
-  getEventHistory(): VisualizationEvent<T>[] {
+  getEventHistory(): SortingEvent<T>[] {
     return [...this.eventHistory];
   }
 
@@ -288,10 +287,10 @@ class VisualizationContext<T extends IVisualizable> implements ISubject<T> {
 /*
  * Наблюдатель для логирования событий в консоль
  */
-class ConsoleLoggingObserver<T extends IVisualizable> implements IObserver<T> {
+class ConsoleLoggingObserver<T extends ISortable> implements IObserver<T> {
   private config = ConfigurationManager.getInstance().getConfig();
 
-  update(event: VisualizationEvent<T>): void {
+  update(event: SortingEvent<T>): void {
     if (!this.config.enableLogging) return;
 
     const timestamp = this.config.showTimestamps 
@@ -300,16 +299,16 @@ class ConsoleLoggingObserver<T extends IVisualizable> implements IObserver<T> {
 
     switch (event.type) {
       case EventType.STARTED:
-        console.log(`\n${this.config.logPrefix} ${timestamp}Visualization started: ${event.metadata?.strategy}`);
+        console.log(`\n${this.config.logPrefix} ${timestamp}Sorting started: ${event.metadata?.strategy}`);
         break;
 
-      case EventType.ELEMENT_DISPLAYED:
+      case EventType.ELEMENT_SORTED:
         const delayInfo = event.delay ? ` (delay: ${event.delay}ms)` : '';
-        console.log(`${this.config.logPrefix} ${timestamp}Element ${event.element?.getValue()} displayed${delayInfo}`);
+        console.log(`${this.config.logPrefix} ${timestamp}Element ${event.element?.getValue()} added to result${delayInfo}`);
         break;
 
       case EventType.COMPLETED:
-        console.log(`${this.config.logPrefix} ${timestamp}Visualization completed: ${event.metadata?.totalElements} elements\n`);
+        console.log(`${this.config.logPrefix} ${timestamp}Sorting completed: ${event.metadata?.totalElements} elements\n`);
         break;
 
       case EventType.ERROR:
@@ -322,14 +321,14 @@ class ConsoleLoggingObserver<T extends IVisualizable> implements IObserver<T> {
 /*
  * Наблюдатель для сбора статистики
  */
-class StatisticsObserver<T extends IVisualizable> implements IObserver<T> {
+class StatisticsObserver<T extends ISortable> implements IObserver<T> {
   private startTime: number = 0;
   private endTime: number = 0;
-  private displayedElements: number = 0;
+  private sortedElements: number = 0;
   private totalDelay: number = 0;
   private events: Map<EventType, number> = new Map();
 
-  update(event: VisualizationEvent<T>): void {
+  update(event: SortingEvent<T>): void {
     const currentCount = this.events.get(event.type) || 0;
     this.events.set(event.type, currentCount + 1);
 
@@ -338,8 +337,8 @@ class StatisticsObserver<T extends IVisualizable> implements IObserver<T> {
         this.startTime = event.timestamp;
         break;
 
-      case EventType.ELEMENT_DISPLAYED:
-        this.displayedElements++;
+      case EventType.ELEMENT_SORTED:
+        this.sortedElements++;
         if (event.delay) {
           this.totalDelay += event.delay;
         }
@@ -351,21 +350,21 @@ class StatisticsObserver<T extends IVisualizable> implements IObserver<T> {
     }
   }
 
-  getStatistics(): VisualizationStatistics {
+  getStatistics(): SortingStatistics {
     return {
       duration: this.endTime - this.startTime,
-      displayedElements: this.displayedElements,
+      sortedElements: this.sortedElements,
       totalDelay: this.totalDelay,
-      averageDelay: this.displayedElements > 0 ? this.totalDelay / this.displayedElements : 0,
+      averageDelay: this.sortedElements > 0 ? this.totalDelay / this.sortedElements : 0,
       eventCounts: new Map(this.events)
     };
   }
 
   printStatistics(): void {
     const stats = this.getStatistics();
-    console.log('\n Visualization Statistics:');
+    console.log('\n📊 Sorting Statistics:');
     console.log(`   Duration: ${stats.duration.toFixed(2)}ms`);
-    console.log(`   Elements Displayed: ${stats.displayedElements}`);
+    console.log(`   Elements Sorted: ${stats.sortedElements}`);
     console.log(`   Total Delay: ${stats.totalDelay}ms`);
     console.log(`   Average Delay: ${stats.averageDelay.toFixed(2)}ms`);
     console.log('   Event Counts:');
@@ -377,42 +376,42 @@ class StatisticsObserver<T extends IVisualizable> implements IObserver<T> {
   reset(): void {
     this.startTime = 0;
     this.endTime = 0;
-    this.displayedElements = 0;
+    this.sortedElements = 0;
     this.totalDelay = 0;
     this.events.clear();
   }
 }
 
-interface VisualizationStatistics {
+interface SortingStatistics {
   duration: number;
-  displayedElements: number;
+  sortedElements: number;
   totalDelay: number;
   averageDelay: number;
   eventCounts: Map<EventType, number>;
 }
 
 /*
- * Наблюдатель для записи истории визуализации
+ * Наблюдатель для записи истории сортировки
  */
-class HistoryObserver<T extends IVisualizable> implements IObserver<T> {
+class HistoryObserver<T extends ISortable> implements IObserver<T> {
   private history: Array<{
-    event: VisualizationEvent<T>;
+    event: SortingEvent<T>;
     formattedTime: string;
   }> = [];
 
-  update(event: VisualizationEvent<T>): void {
+  update(event: SortingEvent<T>): void {
     this.history.push({
       event,
       formattedTime: new Date(event.timestamp).toLocaleTimeString()
     });
   }
 
-  getHistory(): Array<{ event: VisualizationEvent<T>; formattedTime: string }> {
+  getHistory(): Array<{ event: SortingEvent<T>; formattedTime: string }> {
     return [...this.history];
   }
 
   printHistory(): void {
-    console.log('\n Visualization History:');
+    console.log('\n📜 Sorting History:');
     this.history.forEach(({ event, formattedTime }, index) => {
       console.log(`   ${index + 1}. [${formattedTime}] ${event.type}${event.element ? ` - ${event.element.getValue()}` : ''}`);
     });
@@ -424,84 +423,92 @@ class HistoryObserver<T extends IVisualizable> implements IObserver<T> {
 }
 
 /*
- * Абстрактная базовая стратегия визуализации
+ * Абстрактная базовая стратегия сортировки
  */
-abstract class AbstractVisualizationStrategy<T extends IVisualizable> 
-  implements IVisualizationStrategy<T> {
+abstract class AbstractSortingStrategy<T extends ISortable> 
+  implements ISortingStrategy<T> {
   
-  abstract visualize(array: T[], context: VisualizationContext<T>): void;
+  abstract sort(array: T[], context: SortingContext<T>): Promise<T[]>;
   abstract getName(): string;
   abstract getDescription(): string;
 
-  protected getConfig(): Readonly<VisualizationConfig> {
+  protected getConfig(): Readonly<SortingConfig> {
     return ConfigurationManager.getInstance().getConfig();
   }
 }
 
 /*
- * Стратегия визуализации с использованием setTimeout в forEach
- * Реализация: arr.forEach((t) => setTimeout(() => console.log(t), t))
+ * Стандартная стратегия сортировки
  */
-class TimeoutForEachStrategy<T extends IVisualizable> 
-  extends AbstractVisualizationStrategy<T> {
+class DefaultStrategy<T extends ISortable> 
+  extends AbstractSortingStrategy<T> {
 
   @Log
   @ValidateArray
   @Measure
-  visualize(array: T[], context: VisualizationContext<T>): void {
-    context.emitStarted();
+  sort(array: T[], context: SortingContext<T>): Promise<T[]> {
+    return new Promise((resolve, reject) => {
+      context.emitStarted();
 
-    try {
-      // Основная логика: forEach с setTimeout, где задержка = значению элемента
-      array.forEach((element, index) => {
-        const delayMs = element.getValue();
-        
-        setTimeout(() => {
-          console.log(element.getValue());
+      const result: T[] = [];
+      let completedCount = 0;
+      const totalElements = array.length;
+
+      try {
+        array.forEach((element, index) => {
+          const delayMs = element.getValue();
           
-          // Уведомление наблюдателей
-          context.emitElementDisplayed(element, index, delayMs);
-          
-          // Если это последний элемент, отправляем событие завершения
-          if (index === array.length - 1) {
-            setTimeout(() => {
+          setTimeout(() => {
+            // Добавляем элемент в результирующий массив
+            result.push(element);
+            
+            console.log(`Added to result array: ${element.getValue()}`);
+            
+            // Уведомление наблюдателей
+            context.emitElementSorted(element, index, delayMs);
+            
+            completedCount++;
+            
+            // Если все элементы обработаны, завершаем Promise
+            if (completedCount === totalElements) {
               context.emitCompleted();
-            }, 10);
-          }
-        }, delayMs);
-      });
+              resolve(result);
+            }
+          }, delayMs);
+        });
 
-    } catch (error) {
-      context.emitError(error as Error);
-      throw error;
-    }
+      } catch (error) {
+        context.emitError(error as Error);
+        reject(error);
+      }
+    });
   }
 
   getName(): string {
-    return 'setTimeout + forEach Strategy';
+    return 'Default Fast Strategy (Sleep Sort)';
   }
 
   getDescription(): string {
-    return 'Visualizes array elements using setTimeout with delay equal to element value: arr.forEach((t) => setTimeout(() => console.log(t), t))';
+    return 'Sorts array using blazing fast algorithm. Elements are added to result array in order of completion.';
   }
 }
 
 /*
- * Конкретная фабрика стратегий визуализации
+ * Конкретная фабрика стратегий сортировки
  */
-class ConcreteVisualizationStrategyFactory<T extends IVisualizable>
-  implements IVisualizationStrategyFactory<T> {
+class ConcreteSortingStrategyFactory<T extends ISortable>
+  implements ISortingStrategyFactory<T> {
   
-  private strategies: Map<StrategyType, IVisualizationStrategy<T>> = new Map();
+  private strategies: Map<StrategyType, ISortingStrategy<T>> = new Map();
 
   constructor() {
     this.registerStrategy(
-      StrategyType.TIMEOUT_FOREACH,
-      new TimeoutForEachStrategy<T>()
+      StrategyType.DEFAULT,
+      new DefaultStrategy<T>()
     );
   }
 
-  createStrategy(type: StrategyType): IVisualizationStrategy<T> {
+  createStrategy(type: StrategyType): ISortingStrategy<T> {
     const strategy = this.strategies.get(type);
     
     if (!strategy) {
@@ -513,7 +520,7 @@ class ConcreteVisualizationStrategyFactory<T extends IVisualizable>
     return strategy;
   }
 
-  registerStrategy(type: StrategyType, strategy: IVisualizationStrategy<T>): void {
+  registerStrategy(type: StrategyType, strategy: ISortingStrategy<T>): void {
     this.strategies.set(type, strategy);
   }
 
@@ -527,13 +534,13 @@ class ConcreteVisualizationStrategyFactory<T extends IVisualizable>
 }
 
 /*
- * Построитель для создания визуализатора
+ * Построитель для создания сортировщика
  */
-class VisualizerBuilder<T extends IVisualizable> {
+class SorterBuilder<T extends ISortable> {
   private array?: T[];
-  private strategy?: IVisualizationStrategy<T>;
+  private strategy?: ISortingStrategy<T>;
   private observers: IObserver<T>[] = [];
-  private config?: Partial<VisualizationConfig>;
+  private config?: Partial<SortingConfig>;
   private enableDefaultObservers: boolean = true;
 
   setArray(array: T[]): this {
@@ -541,7 +548,7 @@ class VisualizerBuilder<T extends IVisualizable> {
     return this;
   }
 
-  setStrategy(strategy: IVisualizationStrategy<T>): this {
+  setStrategy(strategy: ISortingStrategy<T>): this {
     this.strategy = strategy;
     return this;
   }
@@ -551,7 +558,7 @@ class VisualizerBuilder<T extends IVisualizable> {
     return this;
   }
 
-  setConfig(config: Partial<VisualizationConfig>): this {
+  setConfig(config: Partial<SortingConfig>): this {
     this.config = config;
     return this;
   }
@@ -561,12 +568,12 @@ class VisualizerBuilder<T extends IVisualizable> {
     return this;
   }
 
-  build(): ArrayVisualizer<T> {
+  build(): ArraySorter<T> {
     if (!this.array) {
-      throw new Error('Array is required to build visualizer');
+      throw new Error('Array is required to build sorter');
     }
     if (!this.strategy) {
-      throw new Error('Strategy is required to build visualizer');
+      throw new Error('Strategy is required to build sorter');
     }
 
     // Обновление конфигурации
@@ -574,17 +581,17 @@ class VisualizerBuilder<T extends IVisualizable> {
       ConfigurationManager.getInstance().updateConfig(this.config);
     }
 
-    const visualizer = new ArrayVisualizer(this.array, this.strategy);
+    const sorter = new ArraySorter(this.array, this.strategy);
 
     // Добавление наблюдателей по умолчанию
     if (this.enableDefaultObservers) {
-      visualizer.addObserver(new ConsoleLoggingObserver<T>());
+      sorter.addObserver(new ConsoleLoggingObserver<T>());
     }
 
     // Добавление пользовательских наблюдателей
-    this.observers.forEach(observer => visualizer.addObserver(observer));
+    this.observers.forEach(observer => sorter.addObserver(observer));
 
-    return visualizer;
+    return sorter;
   }
 
   reset(): this {
@@ -599,16 +606,16 @@ class VisualizerBuilder<T extends IVisualizable> {
 
 
 /*
- * Основной класс (фасад) визуализатора массива
+ * Основной класс (фасад) сортировщика массива
  */
-class ArrayVisualizer<T extends IVisualizable> {
-  private context: VisualizationContext<T>;
+class ArraySorter<T extends ISortable> {
+  private context: SortingContext<T>;
 
   constructor(
     private array: T[],
-    private strategy: IVisualizationStrategy<T>
+    private strategy: ISortingStrategy<T>
   ) {
-    this.context = new VisualizationContext(strategy.getName());
+    this.context = new SortingContext(strategy.getName());
   }
 
   addObserver(observer: IObserver<T>): void {
@@ -620,46 +627,52 @@ class ArrayVisualizer<T extends IVisualizable> {
   }
 
   @Measure
-  execute(): void {
+  async execute(): Promise<T[]> {
     console.log('\n' + '='.repeat(70));
-    console.log(` ${this.strategy.getName()}`);
+    console.log(`🔄 ${this.strategy.getName()}`);
     console.log('='.repeat(70));
-    console.log(` ${this.strategy.getDescription()}`);
-    console.log(` Array: [${this.array.map(x => x.getValue()).join(', ')}]`);
+    console.log(`📝 ${this.strategy.getDescription()}`);
+    console.log(`📥 Input array: [${this.array.map(x => x.getValue()).join(', ')}]`);
     console.log('='.repeat(70));
 
-    this.strategy.visualize([...this.array], this.context);
+    const result = await this.strategy.sort([...this.array], this.context);
+    
+    console.log('\n' + '='.repeat(70));
+    console.log(`✅ Sorted result: [${result.map(x => x.getValue()).join(', ')}]`);
+    console.log('='.repeat(70));
+    
+    return result;
   }
 
-  getContext(): VisualizationContext<T> {
+  getContext(): SortingContext<T> {
     return this.context;
   }
 
-  getEventHistory(): VisualizationEvent<T>[] {
+  getEventHistory(): SortingEvent<T>[] {
     return this.context.getEventHistory();
   }
 }
 
 /*
- * Интерфейс команды управления визуализацией
+ * Интерфейс команды управления сортировкой
  */
 interface ICommand {
-  execute(): void;
+  execute(): Promise<any>;
   getDescription(): string;
 }
 
 /*
- * Команда для запуска визуализации
+ * Команда для запуска сортировки
  */
-class ExecuteVisualizationCommand<T extends IVisualizable> implements ICommand {
-  constructor(private visualizer: ArrayVisualizer<T>) {}
+class ExecuteSortingCommand<T extends ISortable> implements ICommand {
+  constructor(private sorter: ArraySorter<T>) {}
 
-  execute(): void {
-    this.visualizer.execute();
+  async execute(): Promise<T[]> {
+    return await this.sorter.execute();
   }
 
   getDescription(): string {
-    return 'Execute array visualization';
+    return 'Execute array sorting';
   }
 }
 
@@ -667,15 +680,15 @@ class ExecuteVisualizationCommand<T extends IVisualizable> implements ICommand {
  * Команда для обновления конфигурации
  */
 class UpdateConfigCommand implements ICommand {
-  constructor(private config: Partial<VisualizationConfig>) {}
+  constructor(private config: Partial<SortingConfig>) {}
 
-  execute(): void {
+  async execute(): Promise<void> {
     ConfigurationManager.getInstance().updateConfig(this.config);
-    console.log('Configuration updated');
+    console.log('✅ Configuration updated');
   }
 
   getDescription(): string {
-    return 'Update visualization configuration';
+    return 'Update sorting configuration';
   }
 }
 
@@ -690,19 +703,23 @@ class CommandInvoker {
     this.commandQueue.push(command);
   }
 
-  executeNext(): void {
+  async executeNext(): Promise<any> {
     const command = this.commandQueue.shift();
     if (command) {
       console.log(`\n🔧 Executing: ${command.getDescription()}`);
-      command.execute();
+      const result = await command.execute();
       this.executedCommands.push(command);
+      return result;
     }
   }
 
-  executeAll(): void {
+  async executeAll(): Promise<any[]> {
+    const results = [];
     while (this.commandQueue.length > 0) {
-      this.executeNext();
+      const result = await this.executeNext();
+      results.push(result);
     }
+    return results;
   }
 
   getQueueSize(): number {
@@ -719,89 +736,89 @@ class CommandInvoker {
 }
 
 /*
- * Абстрактный класс с шаблонным методом для запуска визуализации
+ * Абстрактный класс с шаблонным методом для запуска сортировки
  */
-abstract class AbstractVisualizationRunner<T extends IVisualizable> {
-  run(array: T[], strategyType: StrategyType): void {
+abstract class AbstractSortingRunner<T extends ISortable> {
+  async run(array: T[], strategyType: StrategyType): Promise<T[]> {
     this.beforeRun();
     
-    const factory = new ConcreteVisualizationStrategyFactory<T>();
+    const factory = new ConcreteSortingStrategyFactory<T>();
     const strategy = factory.createStrategy(strategyType);
     
-    const builder = new VisualizerBuilder<T>();
-    const visualizer = this.buildVisualizer(builder, array, strategy);
+    const builder = new SorterBuilder<T>();
+    const sorter = this.buildSorter(builder, array, strategy);
     
-    this.executeVisualization(visualizer);
+    const result = await this.executeSorting(sorter);
     
     this.afterRun();
+    
+    return result;
   }
 
   protected abstract beforeRun(): void;
   protected abstract afterRun(): void;
 
-  protected buildVisualizer(
-    builder: VisualizerBuilder<T>,
+  protected buildSorter(
+    builder: SorterBuilder<T>,
     array: T[],
-    strategy: IVisualizationStrategy<T>
-  ): ArrayVisualizer<T> {
+    strategy: ISortingStrategy<T>
+  ): ArraySorter<T> {
     return builder
       .setArray(array)
       .setStrategy(strategy)
       .build();
   }
 
-  protected executeVisualization(visualizer: ArrayVisualizer<T>): void {
-    visualizer.execute();
+  protected async executeSorting(sorter: ArraySorter<T>): Promise<T[]> {
+    return await sorter.execute();
   }
 }
 
 /*
  * Конкретный runner с логированием
  */
-class LoggingVisualizationRunner<T extends IVisualizable> 
-  extends AbstractVisualizationRunner<T> {
+class LoggingSortingRunner<T extends ISortable> 
+  extends AbstractSortingRunner<T> {
   
   protected beforeRun(): void {
-    console.log('\n Starting visualization process...');
+    console.log('\n🚀 Starting sorting process...');
   }
 
   protected afterRun(): void {
-    console.log('\n Visualization process completed.');
+    console.log('\n✅ Sorting process completed.');
   }
 }
 
 
-function demonstrateVisualization(): void {
+async function demonstrateSorting(): Promise<void> {
   // Настройка конфигурации
   ConfigurationManager.getInstance().updateConfig({
     enableLogging: true,
-    logPrefix: '>',
+    logPrefix: '> ',
     showTimestamps: false
   });
 
   console.log('\n' + '='.repeat(70));
-  console.log('ARRAY VISUALIZATION FRAMEWORK');
-  console.log('  Using setTimeout + forEach Strategy');
+  console.log('🎨 ARRAY SORTING USING');
   console.log('='.repeat(70));
 
-  const numbers = [1, 2, 3];
-  const visualizableArray = numbers.map(n => new VisualizableNumber(n));
+  const numbers = [3, 1, 4, 1, 5, 9, 2, 6];
+  const sortableArray = numbers.map(n => new SortableNumber(n));
 
-  console.log(`\n Input array: [${numbers.join(', ')}]`);
-  console.log(' Each element will be displayed after a delay equal to its value (in milliseconds)\n');
+  console.log(`\n📥 Input array: [${numbers.join(', ')}]`);
 
   // Создание фабрики стратегий
-  const factory = new ConcreteVisualizationStrategyFactory<VisualizableNumber>();
-  const strategy = factory.createStrategy(StrategyType.TIMEOUT_FOREACH);
+  const factory = new ConcreteSortingStrategyFactory<SortableNumber>();
+  const strategy = factory.createStrategy(StrategyType.DEFAULT);
 
   // Создание наблюдателей
-  const statisticsObserver = new StatisticsObserver<VisualizableNumber>();
-  const historyObserver = new HistoryObserver<VisualizableNumber>();
+  const statisticsObserver = new StatisticsObserver<SortableNumber>();
+  const historyObserver = new HistoryObserver<SortableNumber>();
 
-  // Использование Builder для создания визуализатора
-  const builder = new VisualizerBuilder<VisualizableNumber>();
-  const visualizer = builder
-    .setArray(visualizableArray)
+  // Использование Builder для создания сортировщика
+  const builder = new SorterBuilder<SortableNumber>();
+  const sorter = builder
+    .setArray(sortableArray)
     .setStrategy(strategy)
     .addObserver(statisticsObserver)
     .addObserver(historyObserver)
@@ -809,66 +826,76 @@ function demonstrateVisualization(): void {
 
   // Использование Command для выполнения
   const invoker = new CommandInvoker();
-  const visualizationCommand = new ExecuteVisualizationCommand(visualizer);
+  const sortingCommand = new ExecuteSortingCommand(sorter);
   
-  invoker.enqueueCommand(visualizationCommand);
-  invoker.executeAll();
-
-  // Вывод статистики после завершения (с задержкой)
+  invoker.enqueueCommand(sortingCommand);
+  const results = await invoker.executeAll();
+  
+  const sortedArray = results[0] as SortableNumber[];
+  
+  console.log('\n' + '─'.repeat(70));
+  console.log(`\n📊 Final sorted array: [${sortedArray.map(x => x.getValue()).join(', ')}]`);
+  
+  // Вывод статистики
   setTimeout(() => {
     console.log('\n' + '─'.repeat(70));
     statisticsObserver.printStatistics();
     historyObserver.printHistory();
     console.log('\n' + '='.repeat(70));
-    console.log('DEMONSTRATION COMPLETED');
+    console.log('✅ DEMONSTRATION COMPLETED');
     console.log('='.repeat(70) + '\n');
-  }, 5000); // Даём время для завершения всех таймаутов
+  }, 100);
 }
 
 /*
  * Пример с использованием Template Method Pattern
  */
-function demonstrateWithTemplateMethod(): void {
-  const numbers = [1, 2, 3];
-  const visualizableArray = numbers.map(n => new VisualizableNumber(n));
+async function demonstrateWithTemplateMethod(): Promise<void> {
+  const numbers = [5, 2, 8, 1, 9];
+  const sortableArray = numbers.map(n => new SortableNumber(n));
 
-  const runner = new LoggingVisualizationRunner<VisualizableNumber>();
-  runner.run(visualizableArray, StrategyType.TIMEOUT_FOREACH);
+  const runner = new LoggingSortingRunner<SortableNumber>();
+  const sortedArray = await runner.run(sortableArray, StrategyType.DEFAULT);
+  
+  console.log(`\n✅ Template Method result: [${sortedArray.map(x => x.getValue()).join(', ')}]`);
 }
 
 /*
  * Пример с кастомной конфигурацией
  */
-function demonstrateWithCustomConfig(): void {
-  const numbers = [100, 200, 300];
-  const visualizableArray = numbers.map(n => new VisualizableNumber(n));
+async function demonstrateWithCustomConfig(): Promise<void> {
+  const numbers = [10, 5, 15, 3, 20];
+  const sortableArray = numbers.map(n => new SortableNumber(n));
 
   // Обновление конфигурации через Command
   const invoker = new CommandInvoker();
   const configCommand = new UpdateConfigCommand({
-    logPrefix: '[TIMEOUT_FOREACH FRAMEWORK] ',
+    logPrefix: '[SLEEP SORT] ',
     showTimestamps: true
   });
 
   invoker.enqueueCommand(configCommand);
 
-  const factory = new ConcreteVisualizationStrategyFactory<VisualizableNumber>();
-  const strategy = factory.createStrategy(StrategyType.TIMEOUT_FOREACH);
+  const factory = new ConcreteSortingStrategyFactory<SortableNumber>();
+  const strategy = factory.createStrategy(StrategyType.DEFAULT);
 
-  const visualizer = new VisualizerBuilder<VisualizableNumber>()
-    .setArray(visualizableArray)
+  const sorter = new SorterBuilder<SortableNumber>()
+    .setArray(sortableArray)
     .setStrategy(strategy)
     .build();
 
-  const visualizationCommand = new ExecuteVisualizationCommand(visualizer);
-  invoker.enqueueCommand(visualizationCommand);
+  const sortingCommand = new ExecuteSortingCommand(sorter);
+  invoker.enqueueCommand(sortingCommand);
   
-  invoker.executeAll();
+  const results = await invoker.executeAll();
+  const sortedArray = results[1] as SortableNumber[];
+  
+  console.log(`\n✅ Custom config result: [${sortedArray.map(x => x.getValue()).join(', ')}]`);
 }
 
 // Запуск демонстрации
-console.log('\n Starting demonstration...\n');
-demonstrateVisualization();
+console.log('\n🎬 Starting demonstration...\n');
+demonstrateSorting();
 
 // Можно раскомментировать для других примеров:
 // setTimeout(() => demonstrateWithTemplateMethod(), 6000);

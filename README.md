@@ -1,6 +1,6 @@
 # The Best Sort
 
-A comprehensive AI-friendly TypeScript library for array sorting and asynchronous processing using powerful strategy  with advanced object-oriented programming patterns and design principles.
+A comprehensive AI-friendly TypeScript library for array sorting and asynchronous processing using powerful strategy with advanced object-oriented programming patterns and design principles.
 
 ## Overview
 
@@ -42,23 +42,32 @@ The Best Sort implements multiple design patterns to create a robust and extensi
 
 ## Core Components
 
-### VisualizableNumber
+### SortableNumber
 
-A comparable number wrapper implementing the `IVisualizable` interface:
+A comparable number wrapper implementing the `SortableNumber` interface:
 
 ```typescript
-const nums =.map(n => new VisualizableNumber(n));
+const nums = [1, 2, 3].map(n => new SortableNumber(n));
 ```
 
 
-### VisualizationContext
+### SortingContext
 
 Manages state and event notifications during visualization:
 
 ```typescript
-const context = new VisualizationContext<VisualizableNumber>("Strategy Name");
+const context = new SortingContext<SortableNumber>("Strategy Name");
 context.attach(observer);
 context.emitElementDisplayed(element, index, delay);
+```
+
+## StrategyFactory
+
+Create sorting strategies through the factory:
+
+```typescript
+const factory = new ConcreteSortingStrategyFactory<SortableNumber>();
+const strategy = factory.createStrategy(StrategyType.DEFAULT);
 ```
 
 
@@ -67,8 +76,10 @@ context.emitElementDisplayed(element, index, delay);
 Track visualization events and collect metrics:
 
 ```typescript
-const statsObserver = new StatisticsObserver<VisualizableNumber>();
-visualizer.addObserver(statsObserver);
+const statsObserver = new StatisticsObserver<SortableNumber>();
+const historyObserver = new HistoryObserver<SortableNumber>();
+sorter.addObserver(statsObserver);
+sorter.addObserver(historyObserver);
 ```
 
 
@@ -88,21 +99,21 @@ ConfigurationManager.getInstance().updateConfig({
 
 ## Event Types
 
-The library emits the following event types during visualization:
+The library emits the following event types during sorting:
 
-- `STARTED` - Visualization has started
-- `ELEMENT_DISPLAYED` - An array element was displayed
-- `COMPLETED` - Visualization has completed
-- `ERROR` - An error occurred during visualization
+- `STARTED` - Sorting has started
+- `ELEMENT_SORTED` - An array element was processed and added to result
+- `COMPLETED` - Sorting has completed
+- `ERROR` - An error occurred during sorting
 
 ## Performance Metrics
 
 `StatisticsObserver` collects the following metrics:
 
 ```typescript
-interface VisualizationStatistics {
+interface SortingStatistics {
   duration: number; // Total duration in milliseconds
-  displayedElements: number; // Number of elements displayed
+  sortedElements: number; // Number of elements sorted
   totalDelay: number; // Sum of all delays
   averageDelay: number; // Average delay per element
   eventCounts: Map<EventType, number>; // Event counts by type
@@ -114,11 +125,11 @@ interface VisualizationStatistics {
 
 The library follows a layered architecture:
 
-1. **Core Domain** - `VisualizableNumber`, event types, configuration
+1. **Core Domain** - `SortableNumber`, event types, configuration
 2. **Patterns Layer** - Decorators, strategies, factory implementations
-3. **Context Layer** - `VisualizationContext` managing state and notifications
-4. **Observer Layer** - Multiple observer implementations
-5. **Application Layer** - `ArrayVisualizer`, `CommandInvoker`, runners
+3. **Context Layer** - `SortingContext` managing state and notifications
+4. **Observer Layer** - Multiple observer implementations (Console, Statistics, History)
+5. **Application Layer** - `ArraySorter`, `CommandInvoker`, runners
 6. **Factory Layer** - Strategy and builder creation
 
 ## TypeScript Features Used
@@ -131,55 +142,138 @@ The library follows a layered architecture:
 - Readonly types for immutability
 - Object destructuring and spreading
 
+## Usage
+
+Basic usage:
+
+```typescript
+const numbers = [1, 100, 10];​
+const sortableArray = numbers.map(n => new SortableNumber(n));
+
+const factory = new ConcreteSortingStrategyFactory<SortableNumber>();
+const strategy = factory.createStrategy(StrategyType.DEFAULT);
+
+const sorter = new SorterBuilder<SortableNumber>()
+  .setArray(sortableArray)
+  .setStrategy(strategy)
+  .build();
+
+const sortedArray = await sorter.execute();
+console.log(sortedArray)
+```
+
+### With custom observers
+
+```typescript
+const statisticsObserver = new StatisticsObserver<SortableNumber>();
+const historyObserver = new HistoryObserver<SortableNumber>();
+
+const sorter = new SorterBuilder<SortableNumber>()
+.setArray(sortableArray)
+.setStrategy(strategy)
+.addObserver(statisticsObserver)
+.addObserver(historyObserver)
+.build();
+
+await sorter.execute();
+statisticsObserver.printStatistics();
+historyObserver.printHistory();
+```
+
+### Using command pattern
+
+```typescript
+const invoker = new CommandInvoker();
+const sortingCommand = new ExecuteSortingCommand(sorter);
+
+invoker.enqueueCommand(sortingCommand);
+const results = await invoker.executeAll();
+```
+
+### Using template method pattern
+
+```typescript
+const runner = new LoggingSortingRunner<SortableNumber>();
+const sortedArray = await runner.run(sortableArray, StrategyType.DEFAULT);
+```
+
 ## Extending the Library
 
 ### Creating Custom Observers
 
 ```typescript
-class CustomObserver<T extends IVisualizable> implements IObserver<T> {
-  update(event: VisualizationEvent<T>): void {
-    // Custom logic here
+class MetricsObserver<T extends ISortable> implements IObserver<T> {
+  update(event: SortingEvent<T>): void {
+    if (event.type === EventType.ELEMENT_SORTED) {
+      // Custom logic here
+    }
   }
 }
 
-visualizer.addObserver(new CustomObserver());
+sorter.addObserver(new MetricsObserver());
+```
+
+### Creating custom strategies
+
+```typescript
+class BubbleSortStrategy<T extends ISortable>
+extends AbstractSortingStrategy<T> {
+
+  sort(array: T[], context: SortingContext<T>): Promise<T[]> {
+    context.emitStarted();
+    // Implementation
+    context.emitCompleted();
+    return Promise.resolve(result);
+  }
+
+  getName(): string {
+    return 'Bubble Sort Strategy';
+  }
+
+  getDescription(): string {
+    return 'Classic bubble sort implementation';
+  }
+}
+
+// Register strategy
+factory.registerStrategy(StrategyType.BUBBLE, new BubbleSortStrategy());
 ```
 
 
 ### Creating Custom Commands
 
 ```typescript
-class CustomCommand implements ICommand {
-  execute(): void {
-    // Custom command logic
+class ResetCommand implements ICommand {
+  async execute(): Promise<void> {
+    ConfigurationManager.getInstance().resetToDefaults();
   }
 
   getDescription(): string {
-    return "Custom command description";
+    return 'Reset configuration to defaults';
   }
 }
 
-invoker.enqueueCommand(new CustomCommand());
+invoker.enqueueCommand(new ResetCommand());
 ```
 
 
 ### Creating Custom Runners
 
 ```typescript
-class CustomRunner<T extends IVisualizable>
-extends AbstractVisualizationRunner<T> {
-  
+class MetricsSortingRunner<T extends ISortable>
+extends AbstractSortingRunner<T> {
+
   protected beforeRun(): void {
-    console.log("Before run");
+    console.log('Initializing sorting with metrics...');
   }
-  
+
   protected afterRun(): void {
-    console.log("After run");
+    console.log('Sorting completed with full metrics');
   }
 }
 
-const runner = new CustomRunner<VisualizableNumber>();
-runner.run(array, StrategyType.TIMEOUT_FOREACH);
+const runner = new MetricsSortingRunner<SortableNumber>();
+const result = await runner.run(sortableArray, StrategyType.DEFAULT);
 ```
 
 ## Requirements
@@ -190,9 +284,7 @@ runner.run(array, StrategyType.TIMEOUT_FOREACH);
 
 ## Limitations
 
-- All timing is based on setTimeout, which may be affected by event loop congestion
 - Very large arrays (10,000+) may cause performance degradation
-- setTimeout precision is not guaranteed to be exact at sub-millisecond scales
 
 ## Contributing
 

@@ -5,9 +5,9 @@ This document provides guidance for AI systems, language models, and automated a
 ## Project Overview
 
 **Project Name**: The Best Sort
-**Purpose**: framework demonstrating async visualization and design patterns
+**Purpose**: framework for async sorting
 **Language**: TypeScript
-**Type**: Sorting library using setTimeout-based strategies
+**Type**: Sorting library using different strategies
 
 ## Core Architecture
 
@@ -15,17 +15,17 @@ This document provides guidance for AI systems, language models, and automated a
 
 ```
 src/index.ts
-├── Interfaces & Types (IComparable, IObserver, IStrategy, etc.)
+├── Interfaces & Types (ISortable, IObserver, ISortingStrategy, etc.)
 ├── Singleton: ConfigurationManager
-├── Observable: VisualizationContext
+├── Observable: SortingContext
 ├── Observers: ConsoleLoggingObserver, StatisticsObserver, HistoryObserver
-├── Strategy: TimeoutForEachStrategy
-├── Factory: ConcreteVisualizationStrategyFactory
-├── Builder: VisualizerBuilder
-├── Facade: ArrayVisualizer
-├── Command: ExecuteVisualizationCommand, CommandInvoker
-├── Template Method: AbstractVisualizationRunner
-└── Main: demonstrateVisualization()
+├── Strategy: DefaultStrategy
+├── Factory: ConcreteSortingStrategyFactory
+├── Builder: SorterBuilder
+├── Facade: ArraySorter
+├── Command: ExecuteSortingCommand, CommandInvoker
+├── Template Method: AbstractSortingRunner
+└── Main: demonstrateSorting()
 ```
 
 
@@ -37,7 +37,7 @@ src/index.ts
 - **Key Properties**: baseDelayMs, enableLogging, logPrefix, showTimestamps, colorize
 - **Usage**: Should be used to configure all framework behavior
 
-### VisualizationContext (Subject/Observable)
+### SortingContext (Subject/Observable)
 - **Purpose**: Core event system and state management
 - **Key Methods**: 
   - `attach(observer)` - Add observer
@@ -66,24 +66,26 @@ src/index.ts
 - **Methods**: `getHistory()`, `printHistory()`, `clear()`
 - **Use Case**: Debugging and auditing visualization execution
 
-### ArrayVisualizer (Facade)
+### ArraySorter (Facade)
+
 - **Purpose**: Main interface for users and agents
 - **Key Methods**:
-  - `execute()` - Run visualization
+  - `execute()` - Run sorting and return Promise<T[]>
   - `addObserver(observer)` - Subscribe to events
   - `removeObserver(observer)` - Unsubscribe
   - `getContext()` - Access underlying context
   - `getEventHistory()` - Get all events
 - **Properties**: array, strategy
 
-### VisualizerBuilder (Builder Pattern)
-- **Purpose**: Fluent interface for constructing visualizers
-- **Methods**: `setArray()`, `setStrategy()`, `addObserver()`, `setConfig()`, `build()`, `reset()`
+### SorterBuilder (Builder Pattern)
+
+- **Purpose**: Fluent interface for constructing sorters
+- **Methods**: `setArray()`, `setStrategy()`, `addObserver()`, `setConfig()`, `disableDefaultObservers()`, `build()`, `reset()`
 - **Chainable**: All setters return `this` for chaining
-- **Example**: 
+- **Example**:
 
 ```typescript
-new VisualizerBuilder<T>()
+new SorterBuilder<SortableNumber>()
   .setArray(array)
   .setStrategy(strategy)
   .addObserver(observer)
@@ -91,46 +93,51 @@ new VisualizerBuilder<T>()
 ```
 
 
-### TimeoutForEachStrategy
-- **Purpose**: Core visualization strategy
-- **Implementation**: Uses `arr.forEach((t) => setTimeout(() => console.log(t), t))`
-- **Behavior**: Each element displays after delay equal to its numeric value
-- **Methods**: `visualize()`, `getName()`, `getDescription()`
+### DefaultStrategy
 
-### ConcreteVisualizationStrategyFactory (Factory Pattern)
+- **Purpose**: Core sorting strategy
+- **Implementation**: Uses Sleep Sort algorithm with `arr.forEach((t) => setTimeout(() => result.push(t), t))`
+- **Behavior**: Each element is added to result after delay equal to its numeric value
+- **Methods**: `sort()`, `getName()`, `getDescription()`
+- **Returns**: Promise<T[]> - sorted array
+
+### ConcreteSortingStrategyFactory (Factory Pattern)
+
 - **Purpose**: Create strategy instances
-- **Methods**: `createStrategy(type)`, `registerStrategy(type, strategy)`, `listAvailableStrategies()`
+- **Methods**: `createStrategy(type)`, `registerStrategy(type, strategy)`, `listAvailableStrategies()`, `hasStrategy(type)`
 - **Caching**: Caches created strategies
-- **Current Strategies**: TIMEOUT_FOREACH
+- **Current Strategies**: DEFAULT
 
 ### CommandInvoker (Command Pattern)
-- **Purpose**: Queue and execute commands
-- **Methods**: `enqueueCommand()`, `executeNext()`, `executeAll()`, `getQueueSize()`, `clearQueue()`
-- **Use Case**: Deferred execution, undo/redo patterns
 
-### AbstractVisualizationRunner (Template Method)
+- **Purpose**: Queue and execute commands asynchronously
+- **Methods**: `enqueueCommand()`, `executeNext()`, `executeAll()`, `getQueueSize()`, `clearQueue()`, `getExecutedCommands()`
+- **Use Case**: Deferred execution, batch processing
+
+### AbstractSortingRunner (Template Method)
+
 - **Purpose**: Customizable execution flow
-- **Methods**: `run(array, strategyType)`
-- **Override Points**: `beforeRun()`, `afterRun()`, `buildVisualizer()`, `executeVisualization()`
-- **Subclass**: LoggingVisualizationRunner
+- **Methods**: `run(array, strategyType)` - Returns Promise<T[]>
+- **Override Points**: `beforeRun()`, `afterRun()`, `buildSorter()`, `executeSorting()`
+- **Subclass**: LoggingSortingRunner
 
 ## Design Patterns Used
 
 | Pattern | Class | Purpose |
 |---------|-------|---------|
 | Singleton | ConfigurationManager | Global state management |
-| Factory | ConcreteVisualizationStrategyFactory | Create strategies |
-| Builder | VisualizerBuilder | Fluent construction |
-| Facade | ArrayVisualizer | Simplified interface |
-| Strategy | IVisualizationStrategy | Interchangeable algorithms |
-| Observer | IObserver + VisualizationContext | Event notifications |
+| Factory | ConcreteSortingStrategyFactory | Create strategies |
+| Builder | SorterBuilder | Fluent construction |
+| Facade | ArraySorter | Simplified interface |
+| Strategy | ISortingStrategy | Interchangeable algorithms |
+| Observer | IObserver + SortingContext | Event notifications |
 | Command | CommandInvoker | Deferred execution |
-| Template Method | AbstractVisualizationRunner | Customizable flow |
+| Template Method | AbstractSortingRunner | Customizable flow |
 | Decorator | @Measure, @Log, @ValidateArray | Method enhancement |
 
 ## Data Structures
 
-### VisualizableNumber
+### SortableNumber
 
 ```typescript
 {
@@ -139,11 +146,11 @@ new VisualizerBuilder<T>()
 ```
 
 
-### VisualizationEvent<T>
+### SortingEvent<T>
 
 ```typescript
 {
-  type: EventType, // STARTED | ELEMENT_DISPLAYED | COMPLETED | ERROR
+  type: EventType, // STARTED | ELEMENT_SORTED | COMPLETED | ERROR
   element?: T, // The affected element
   index?: number, // Array index
   timestamp: number, // Unix timestamp
@@ -153,7 +160,7 @@ new VisualizerBuilder<T>()
 ```
 
 
-### VisualizationConfig
+### SortingConfig
 
 ```typescript
 {
@@ -164,6 +171,20 @@ new VisualizerBuilder<T>()
   colorize: boolean // Colorize output
 }
 ```
+
+### SortingStatistics
+
+```typescript
+{
+  duration: number, // Total time in milliseconds
+  sortedElements: number, // Number of elements processed
+  totalDelay: number, // Sum of all delays
+  averageDelay: number, // Average delay per element
+  eventCounts: Map<EventType, number> // Event count breakdown
+}
+```
+
+
 
 ## Typical Workflow for Agents
 
@@ -219,13 +240,19 @@ All visualization is asynchronous via setTimeout. Key points:
 ```
 execute() called
 ↓
-STARTED event
+Returns Promise<T[]>
 ↓
-setTimeout schedules for each element
+STARTED event emitted
 ↓
-On delay expiration: ELEMENT_DISPLAYED event
+Sorting started
 ↓
-After all elements: COMPLETED event
+On delay expiration: ELEMENT_SORTED event emitted
+↓
+Element added to result array
+↓
+After all elements processed: COMPLETED event emitted
+↓
+Promise resolves with sorted array
 ```
 
 
@@ -241,33 +268,37 @@ After all elements: COMPLETED event
 ### Monitoring Integration
 
 ```typescript
-const monitor = new StatisticsObserver<VisualizableNumber>();
-const visualizer = new VisualizerBuilder<VisualizableNumber>()
-  .setArray(array)
+const monitor = new StatisticsObserver<SortableNumber>();
+const sorter = new SorterBuilder<SortableNumber>()
+  .setArray(sortableArray)
   .setStrategy(strategy)
   .addObserver(monitor)
   .build();
 
-visualizer.execute();
+const sortedArray = await sorter.execute();
 
-setTimeout(() => {
-  const stats = monitor.getStatistics();
-  console.log(`Completed in ${stats.duration}ms`);
-}, 5000);
+const stats = monitor.getStatistics();
+console.log(`Completed in ${stats.duration}ms`);
+console.log(`Elements sorted: ${stats.sortedElements}`);
 ```
 
 
 ### History Tracking
 
 ```typescript
-const history = new HistoryObserver<VisualizableNumber>();
-visualizer.addObserver(history);
-visualizer.execute();
+const history = new HistoryObserver<SortableNumber>();
+const sorter = new SorterBuilder<SortableNumber>()
+  .setArray(sortableArray)
+  .setStrategy(strategy)
+  .addObserver(history)
+  .build();
 
-setTimeout(() => {
-  const events = history.getHistory();
-  events.forEach(e => console.log(e.event.type));
-}, 5000);
+const sortedArray = await sorter.execute();
+
+const events = history.getHistory();
+events.forEach(({ event, formattedTime }) => {
+console.log(`[${formattedTime}] ${event.type}`);
+});
 ```
 
 ### Custom Configuration
@@ -279,24 +310,69 @@ ConfigurationManager.getInstance().updateConfig({
 });
 ```
 
+### Using command pattern
+
+```typescript
+const invoker = new CommandInvoker();
+
+const command1 = new ExecuteSortingCommand(sorter1);
+const command2 = new ExecuteSortingCommand(sorter2);
+
+invoker.enqueueCommand(command1);
+invoker.enqueueCommand(command2);
+
+const results = await invoker.executeAll();
+const sorted1 = results as SortableNumber[];
+const sorted2 = results as SortableNumber[];
+```
+
+### Using template method content
+
+```typescript
+const runner = new LoggingSortingRunner<SortableNumber>();
+const sortedArray = await runner.run(sortableArray, StrategyType.DEFAULT);
+console.log(Final sorted array: [${sortedArray.map(x => x.getValue()).join(', ')}]);
+```
+
 ## Extension Points for Agents
 
 ### Add Custom Strategy
 
-1. Extend `AbstractVisualizationStrategy<T>`
-2. Implement: `visualize()`, `getName()`, `getDescription()`
+1. Extend `AbstractSortingStrategy<T>`
+2. Implement: `sort()`, `getName()`, `getDescription()`
 3. Register with factory: `factory.registerStrategy(type, newStrategy)`
+
+```typescript
+class QuickSortStrategy<T extends ISortable>
+extends AbstractSortingStrategy<T> {
+
+  sort(array: T[], context: SortingContext<T>): Promise<T[]> {
+    context.emitStarted();
+    // Implementation
+    context.emitCompleted();
+    return Promise.resolve(result);
+  }
+
+  getName(): string {
+    return 'Quick Sort Strategy';
+  }
+
+  getDescription(): string {
+    return 'Quick sort implementation';
+  }
+}
+```
 
 ### Add Custom Observer
 
 1. Implement `IObserver<T>`
-2. Implement: `update(event: VisualizationEvent<T>)`
-3. Add to visualizer: `visualizer.addObserver(observer)`
+2. Implement: `update(event: SortingEvent<T>)`
+3. Add to sorter: `sorter.addObserver(observer)`
 
 ### Add Custom Runner
 
-1. Extend `AbstractVisualizationRunner<T>`
-2. Override: `beforeRun()`, `afterRun()`, `buildVisualizer()`, `executeVisualization()`
+1. Extend `AbstractSortingRunner<T>`
+2. Override: `beforeRun()`, `afterRun()`, `buildSorter()`, `executeSorting()`
 3. Call: `runner.run(array, strategyType)`
 
 ## File Structure for Agents
@@ -309,18 +385,23 @@ ConfigurationManager.getInstance().updateConfig({
 ## Recommended Setup for Agent Processing
 
 ```typescript
-// 1. Configure
+// 1. Configure for agent usage
 ConfigurationManager.getInstance().updateConfig({
   enableLogging: false, // Disable console output
-  baseDelayMs: 1000 // Set appropriate delay
+  baseDelayMs: 1000,
+  showTimestamps: false
 });
 
-// 2. Create observers
-const stats = new StatisticsObserver<VisualizableNumber>();
-const history = new HistoryObserver<VisualizableNumber>();
+// 2. Create observers for metrics
+const stats = new StatisticsObserver<SortableNumber>();
+const history = new HistoryObserver<SortableNumber>();
 
-// 3. Build visualizer
-const visualizer = new VisualizerBuilder<VisualizableNumber>()
+// 3. Create strategy
+const factory = new ConcreteSortingStrategyFactory<SortableNumber>();
+const strategy = factory.createStrategy(StrategyType.DEFAULT);
+
+// 4. Build sorter
+const sorter = new SorterBuilder<SortableNumber>()
   .setArray(array)
   .setStrategy(strategy)
   .addObserver(stats)
@@ -328,15 +409,26 @@ const visualizer = new VisualizerBuilder<VisualizableNumber>()
   .disableDefaultObservers() // Disable console logging
   .build();
 
-// 4. Execute
-visualizer.execute();
+// 5. Execute and await result
+const sortedArray = await sorter.execute();
 
-// 5. Wait and analyze
-setTimeout(() => {
-  const metrics = stats.getStatistics();
-  const events = history.getHistory();
-  // Process results
-}, 5000);
+// 6. Analyze metrics
+const metrics = stats.getStatistics();
+const events = history.getHistory();
+
+console.log({
+  duration: metrics.duration,
+  elementsSorted: metrics.sortedElements,
+  averageDelay: metrics.averageDelay,
+  eventCount: metrics.eventCounts.size
+});
+
+// 7. Return results
+return {
+  sorted: sortedArray.map(x => x.getValue()),
+  metrics,
+  events
+};
 ```
 
 ---

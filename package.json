@@ -1,6 +1,6 @@
 {
   "name": "the-best-sort",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "Sorting framework basid on best design patterns with the most powerful sort strategies in TypeScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -45,7 +45,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
-    "typescript": "^5.3.0",
-    "tsx": "^4.20.6"
+    "tsx": "^4.20.6",
+    "typescript": "^5.3.0"
   }
 }
