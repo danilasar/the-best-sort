@@ -1,7 +1,7 @@
 /*
  * Интерфейс для элемента, который можно сортировать
  */
-interface ISortable {
+export interface ISortable {
   getValue(): number;
   toString(): string;
 }
@@ -9,14 +9,14 @@ interface ISortable {
 /*
  * Интерфейс наблюдателя для паттерна Observer
  */
-interface IObserver<T> {
+export interface IObserver<T> {
   update(event: SortingEvent<T>): void;
 }
 
 /*
  * Интерфейс субъекта для паттерна Observer
  */
-interface ISubject<T> {
+export interface ISubject<T> {
   attach(observer: IObserver<T>): void;
   detach(observer: IObserver<T>): void;
   notify(event: SortingEvent<T>): void;
@@ -25,7 +25,7 @@ interface ISubject<T> {
 /*
  * Типы событий сортировки
  */
-enum EventType {
+export enum EventType {
   STARTED = 'STARTED',
   ELEMENT_SORTED = 'ELEMENT_SORTED',
   COMPLETED = 'COMPLETED',
@@ -35,7 +35,7 @@ enum EventType {
 /*
  * Интерфейс события сортировки
  */
-interface SortingEvent<T> {
+export interface SortingEvent<T> {
   type: EventType;
   element?: T;
   index?: number;
@@ -47,7 +47,7 @@ interface SortingEvent<T> {
 /*
  * Интерфейс стратегии сортировки
  */
-interface ISortingStrategy<T extends ISortable> {
+export interface ISortingStrategy<T extends ISortable> {
   sort(array: T[], context: SortingContext<T>): Promise<T[]>;
   getName(): string;
   getDescription(): string;
@@ -56,7 +56,7 @@ interface ISortingStrategy<T extends ISortable> {
 /*
  * Интерфейс для фабрики стратегий
  */
-interface ISortingStrategyFactory<T extends ISortable> {
+export interface ISortingStrategyFactory<T extends ISortable> {
   createStrategy(type: StrategyType): ISortingStrategy<T>;
   registerStrategy(type: StrategyType, strategy: ISortingStrategy<T>): void;
   listAvailableStrategies(): string[];
@@ -65,14 +65,14 @@ interface ISortingStrategyFactory<T extends ISortable> {
 /*
  * Типы стратегий сортировки
  */
-enum StrategyType {
+export enum StrategyType {
   DEFAULT = 'DEFAULT'
 }
 
 /*
  * Конфигурация сортировки
  */
-interface SortingConfig {
+export interface SortingConfig {
   baseDelayMs: number;
   enableLogging: boolean;
   logPrefix: string;
@@ -83,7 +83,7 @@ interface SortingConfig {
 /*
  * Обёртка для числового значения с поддержкой сортировки
  */
-class SortableNumber implements ISortable {
+export class SortableNumber implements ISortable {
   constructor(private readonly value: number) {}
 
   getValue(): number {
@@ -102,7 +102,7 @@ class SortableNumber implements ISortable {
 /*
  * Синглтон для управления глобальной конфигурацией
  */
-class ConfigurationManager {
+export class ConfigurationManager {
   private static instance: ConfigurationManager;
   private config: SortingConfig;
 
@@ -208,7 +208,7 @@ function ValidateArray(target: any, propertyKey: string, descriptor: PropertyDes
 /*
  * Контекст сортировки, реализующий паттерн Subject
  */
-class SortingContext<T extends ISortable> implements ISubject<T> {
+export class SortingContext<T extends ISortable> implements ISubject<T> {
   private observers: Set<IObserver<T>> = new Set();
   private eventHistory: SortingEvent<T>[] = [];
   private elementCount: number = 0;
@@ -287,7 +287,7 @@ class SortingContext<T extends ISortable> implements ISubject<T> {
 /*
  * Наблюдатель для логирования событий в консоль
  */
-class ConsoleLoggingObserver<T extends ISortable> implements IObserver<T> {
+export class ConsoleLoggingObserver<T extends ISortable> implements IObserver<T> {
   private config = ConfigurationManager.getInstance().getConfig();
 
   update(event: SortingEvent<T>): void {
@@ -321,7 +321,7 @@ class ConsoleLoggingObserver<T extends ISortable> implements IObserver<T> {
 /*
  * Наблюдатель для сбора статистики
  */
-class StatisticsObserver<T extends ISortable> implements IObserver<T> {
+export class StatisticsObserver<T extends ISortable> implements IObserver<T> {
   private startTime: number = 0;
   private endTime: number = 0;
   private sortedElements: number = 0;
@@ -382,7 +382,7 @@ class StatisticsObserver<T extends ISortable> implements IObserver<T> {
   }
 }
 
-interface SortingStatistics {
+export interface SortingStatistics {
   duration: number;
   sortedElements: number;
   totalDelay: number;
@@ -393,7 +393,7 @@ interface SortingStatistics {
 /*
  * Наблюдатель для записи истории сортировки
  */
-class HistoryObserver<T extends ISortable> implements IObserver<T> {
+export class HistoryObserver<T extends ISortable> implements IObserver<T> {
   private history: Array<{
     event: SortingEvent<T>;
     formattedTime: string;
@@ -425,7 +425,7 @@ class HistoryObserver<T extends ISortable> implements IObserver<T> {
 /*
  * Абстрактная базовая стратегия сортировки
  */
-abstract class AbstractSortingStrategy<T extends ISortable> 
+export abstract class AbstractSortingStrategy<T extends ISortable> 
   implements ISortingStrategy<T> {
   
   abstract sort(array: T[], context: SortingContext<T>): Promise<T[]>;
@@ -440,7 +440,7 @@ abstract class AbstractSortingStrategy<T extends ISortable>
 /*
  * Стандартная стратегия сортировки
  */
-class DefaultStrategy<T extends ISortable> 
+export class DefaultStrategy<T extends ISortable> 
   extends AbstractSortingStrategy<T> {
 
   @Log
@@ -496,7 +496,7 @@ class DefaultStrategy<T extends ISortable>
 /*
  * Конкретная фабрика стратегий сортировки
  */
-class ConcreteSortingStrategyFactory<T extends ISortable>
+export class ConcreteSortingStrategyFactory<T extends ISortable>
   implements ISortingStrategyFactory<T> {
   
   private strategies: Map<StrategyType, ISortingStrategy<T>> = new Map();
@@ -536,7 +536,7 @@ class ConcreteSortingStrategyFactory<T extends ISortable>
 /*
  * Построитель для создания сортировщика
  */
-class SorterBuilder<T extends ISortable> {
+export class SorterBuilder<T extends ISortable> {
   private array?: T[];
   private strategy?: ISortingStrategy<T>;
   private observers: IObserver<T>[] = [];
@@ -608,7 +608,7 @@ class SorterBuilder<T extends ISortable> {
 /*
  * Основной класс (фасад) сортировщика массива
  */
-class ArraySorter<T extends ISortable> {
+export class ArraySorter<T extends ISortable> {
   private context: SortingContext<T>;
 
   constructor(
@@ -656,7 +656,7 @@ class ArraySorter<T extends ISortable> {
 /*
  * Интерфейс команды управления сортировкой
  */
-interface ICommand {
+export interface ICommand {
   execute(): Promise<any>;
   getDescription(): string;
 }
@@ -664,7 +664,7 @@ interface ICommand {
 /*
  * Команда для запуска сортировки
  */
-class ExecuteSortingCommand<T extends ISortable> implements ICommand {
+export class ExecuteSortingCommand<T extends ISortable> implements ICommand {
   constructor(private sorter: ArraySorter<T>) {}
 
   async execute(): Promise<T[]> {
@@ -679,7 +679,7 @@ class ExecuteSortingCommand<T extends ISortable> implements ICommand {
 /*
  * Команда для обновления конфигурации
  */
-class UpdateConfigCommand implements ICommand {
+export class UpdateConfigCommand implements ICommand {
   constructor(private config: Partial<SortingConfig>) {}
 
   async execute(): Promise<void> {
@@ -695,7 +695,7 @@ class UpdateConfigCommand implements ICommand {
 /*
  * Invoker для команд
  */
-class CommandInvoker {
+export class CommandInvoker {
   private commandQueue: ICommand[] = [];
   private executedCommands: ICommand[] = [];
 
@@ -738,7 +738,7 @@ class CommandInvoker {
 /*
  * Абстрактный класс с шаблонным методом для запуска сортировки
  */
-abstract class AbstractSortingRunner<T extends ISortable> {
+export abstract class AbstractSortingRunner<T extends ISortable> {
   async run(array: T[], strategyType: StrategyType): Promise<T[]> {
     this.beforeRun();
     
@@ -777,7 +777,7 @@ abstract class AbstractSortingRunner<T extends ISortable> {
 /*
  * Конкретный runner с логированием
  */
-class LoggingSortingRunner<T extends ISortable> 
+export class LoggingSortingRunner<T extends ISortable> 
   extends AbstractSortingRunner<T> {
   
   protected beforeRun(): void {
@@ -790,7 +790,7 @@ class LoggingSortingRunner<T extends ISortable>
 }
 
 
-async function demonstrateSorting(): Promise<void> {
+export async function demonstrateSorting(): Promise<void> {
   // Настройка конфигурации
   ConfigurationManager.getInstance().updateConfig({
     enableLogging: true,
@@ -850,7 +850,7 @@ async function demonstrateSorting(): Promise<void> {
 /*
  * Пример с использованием Template Method Pattern
  */
-async function demonstrateWithTemplateMethod(): Promise<void> {
+export async function demonstrateWithTemplateMethod(): Promise<void> {
   const numbers = [5, 2, 8, 1, 9];
   const sortableArray = numbers.map(n => new SortableNumber(n));
 
@@ -863,7 +863,7 @@ async function demonstrateWithTemplateMethod(): Promise<void> {
 /*
  * Пример с кастомной конфигурацией
  */
-async function demonstrateWithCustomConfig(): Promise<void> {
+export async function demonstrateWithCustomConfig(): Promise<void> {
   const numbers = [10, 5, 15, 3, 20];
   const sortableArray = numbers.map(n => new SortableNumber(n));
 
