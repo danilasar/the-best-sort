@@ -46,9 +46,11 @@ The Best Sort implements multiple design patterns to create a robust and extensi
 
 ### SortableNumber
 
-A comparable number wrapper implementing the `SortableNumber` interface:
+A comparable number wrapper implementing the `ISortableNumber` interface:
 
 ```typescript
+import { SortableNumber } from "the-best-sort";
+
 const nums = [1, 2, 3].map(n => new SortableNumber(n));
 ```
 
@@ -58,6 +60,8 @@ const nums = [1, 2, 3].map(n => new SortableNumber(n));
 Manages state and event notifications during visualization:
 
 ```typescript
+import { SortableNumber, SortingContext } from "the-best-sort";
+
 const context = new SortingContext<SortableNumber>("Strategy Name");
 context.attach(observer);
 context.emitElementDisplayed(element, index, delay);
@@ -68,6 +72,8 @@ context.emitElementDisplayed(element, index, delay);
 Create sorting strategies through the factory:
 
 ```typescript
+import { SortableNumber, ConcreteSortingStrategyFactory, StrategyType } from "the-best-sort";
+
 const factory = new ConcreteSortingStrategyFactory<SortableNumber>();
 const strategy = factory.createStrategy(StrategyType.DEFAULT);
 ```
@@ -78,6 +84,8 @@ const strategy = factory.createStrategy(StrategyType.DEFAULT);
 Track visualization events and collect metrics:
 
 ```typescript
+import { SortableNumber, StatisticsObserver, HistoryObserver } from "the-best-sort";
+
 const statsObserver = new StatisticsObserver<SortableNumber>();
 const historyObserver = new HistoryObserver<SortableNumber>();
 sorter.addObserver(statsObserver);
@@ -90,6 +98,8 @@ sorter.addObserver(historyObserver);
 Control visualization behavior globally:
 
 ```typescript
+import { ConfigurationManager } from "the-best-sort";
+
 ConfigurationManager.getInstance().updateConfig({
   baseDelayMs: 100,
   enableLogging: true,
@@ -149,7 +159,9 @@ The library follows a layered architecture:
 Basic usage:
 
 ```typescript
-const numbers = [1, 100, 10];​
+import { SortableNumber, ConcreteSortingStrategyFactory, StrategyType, SorterBuilder } from "the-best-sort";
+
+const numbers = [1, 100, 10];
 const sortableArray = numbers.map(n => new SortableNumber(n));
 
 const factory = new ConcreteSortingStrategyFactory<SortableNumber>();
@@ -167,6 +179,8 @@ console.log(sortedArray)
 ### With custom observers
 
 ```typescript
+import { SortableNumber, ConcreteSortingStrategyFactory, StrategyType, SorterBuilder, StatisticsObserver, HistoryObserver } from "the-best-sort";
+
 const statisticsObserver = new StatisticsObserver<SortableNumber>();
 const historyObserver = new HistoryObserver<SortableNumber>();
 
@@ -185,6 +199,8 @@ historyObserver.printHistory();
 ### Using command pattern
 
 ```typescript
+import { CommandInvoker, ExecuteSortingCommand } from "the-best-sort";
+
 const invoker = new CommandInvoker();
 const sortingCommand = new ExecuteSortingCommand(sorter);
 
@@ -195,6 +211,8 @@ const results = await invoker.executeAll();
 ### Using template method pattern
 
 ```typescript
+import { LoggingSortingRunner } from "the-best-sort";
+
 const runner = new LoggingSortingRunner<SortableNumber>();
 const sortedArray = await runner.run(sortableArray, StrategyType.DEFAULT);
 ```
@@ -204,6 +222,8 @@ const sortedArray = await runner.run(sortableArray, StrategyType.DEFAULT);
 ### Creating Custom Observers
 
 ```typescript
+import { ISortable, IObserver, SortingEvent, EventType } from "the-best-sort";
+
 class MetricsObserver<T extends ISortable> implements IObserver<T> {
   update(event: SortingEvent<T>): void {
     if (event.type === EventType.ELEMENT_SORTED) {
@@ -218,6 +238,8 @@ sorter.addObserver(new MetricsObserver());
 ### Creating custom strategies
 
 ```typescript
+import { ISortable, AbstractSortingStrategy, SortingContext, StrategyType } from "the-best-sort";
+
 class BubbleSortStrategy<T extends ISortable>
 extends AbstractSortingStrategy<T> {
 
@@ -245,6 +267,8 @@ factory.registerStrategy(StrategyType.BUBBLE, new BubbleSortStrategy());
 ### Creating Custom Commands
 
 ```typescript
+import { ICommand, ConfigurationManager } from "the-best-sort";
+
 class ResetCommand implements ICommand {
   async execute(): Promise<void> {
     ConfigurationManager.getInstance().resetToDefaults();
@@ -262,6 +286,8 @@ invoker.enqueueCommand(new ResetCommand());
 ### Creating Custom Runners
 
 ```typescript
+import { ISortable, AbstractSortingRunner } from "the-best-sort";
+
 class MetricsSortingRunner<T extends ISortable>
 extends AbstractSortingRunner<T> {
 

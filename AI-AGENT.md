@@ -268,6 +268,8 @@ Promise resolves with sorted array
 ### Monitoring Integration
 
 ```typescript
+import { StatisticsObserver, SortableNumber, SorterBuilder } from "the-best-sort";
+
 const monitor = new StatisticsObserver<SortableNumber>();
 const sorter = new SorterBuilder<SortableNumber>()
   .setArray(sortableArray)
@@ -286,6 +288,8 @@ console.log(`Elements sorted: ${stats.sortedElements}`);
 ### History Tracking
 
 ```typescript
+import { HistoryObserver, SortableNumber, SorterBuilder } from "the-best-sort";
+
 const history = new HistoryObserver<SortableNumber>();
 const sorter = new SorterBuilder<SortableNumber>()
   .setArray(sortableArray)
@@ -304,6 +308,8 @@ console.log(`[${formattedTime}] ${event.type}`);
 ### Custom Configuration
 
 ```typescript
+import { ConfigurationManager } from "the-best-sort";
+
 ConfigurationManager.getInstance().updateConfig({
   baseDelayMs: 500,
   enableLogging: false
@@ -313,6 +319,8 @@ ConfigurationManager.getInstance().updateConfig({
 ### Using command pattern
 
 ```typescript
+import { ConfigurationManager } from "the-best-sort";
+
 const invoker = new CommandInvoker();
 
 const command1 = new ExecuteSortingCommand(sorter1);
@@ -329,6 +337,8 @@ const sorted2 = results as SortableNumber[];
 ### Using template method content
 
 ```typescript
+import { LoggingSortingRunner, SortableNumber, StrategyType } from "the-best-sort";
+
 const runner = new LoggingSortingRunner<SortableNumber>();
 const sortedArray = await runner.run(sortableArray, StrategyType.DEFAULT);
 console.log(Final sorted array: [${sortedArray.map(x => x.getValue()).join(', ')}]);
@@ -343,6 +353,8 @@ console.log(Final sorted array: [${sortedArray.map(x => x.getValue()).join(', ')
 3. Register with factory: `factory.registerStrategy(type, newStrategy)`
 
 ```typescript
+import { ISortable, AbstractSortingStrategy, SortingContext } from "the-best-sort";
+
 class QuickSortStrategy<T extends ISortable>
 extends AbstractSortingStrategy<T> {
 
@@ -385,6 +397,16 @@ extends AbstractSortingStrategy<T> {
 ## Recommended Setup for Agent Processing
 
 ```typescript
+import {
+  ConfigurationManager,
+  StatisticsObserver,
+  HistoryObserver,
+  SortableNumber,
+  ConcreteSortingStrategyFactory,
+  StrategyType,
+  SorterBuilder
+} from "the-best-sort";
+
 // 1. Configure for agent usage
 ConfigurationManager.getInstance().updateConfig({
   enableLogging: false, // Disable console output
